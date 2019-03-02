@@ -55,7 +55,8 @@ def machine_procedure():
 
 def find_last_day():
     count = 0
-    current_date = datetime.date.today()-datetime.timedelta(days=1)
+    #current_date = datetime.date.today()-datetime.timedelta(days=1)
+    current_date = datetime.date(2019, 2, 10)
     connect_jitai = ConnectServer(server="127.0.0.1", user="sa", password="123", database="DZVS")
     stop_date = datetime.date(2018, 1, 1)
     while 1:
@@ -312,7 +313,9 @@ def each_day_typ_fail():
 
         connect_server.exec(sql_insert_typ)
         connect_server.exec(sql_insert_image)
-#each_day_wagon_fail()
-#each_day_sum_fail()
-#each_day_con_fail()
+
+
+each_day_wagon_fail()
+each_day_sum_fail()
+each_day_con_fail()
 each_day_typ_fail()
