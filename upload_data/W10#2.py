@@ -110,12 +110,12 @@ class ConnectModel:
 
 
 def machine_id():
-    this_machine_id = 'J5'
+    this_machine_id = 'W10#2'
     return this_machine_id
 
 
 def machine_procedure():
-    this_machine_procedure = 'W2'
+    this_machine_procedure = 'W1'
     return this_machine_procedure
 
 

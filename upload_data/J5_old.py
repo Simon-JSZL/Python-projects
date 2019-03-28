@@ -10,7 +10,7 @@ decimal.__version__
 
 class ConnectServer:
     def __init__(self):
-        self.server = "10.17.84.22"
+        self.server = "localhost"
         self.user = "sa"
         self.password = "123"
         self.database = "AnalyzedData"
@@ -48,7 +48,7 @@ class ConnectServer:
 
 class ConnectJitai:
     def __init__(self):
-        self.server = "192.168.50.13"
+        self.server = "localhost"
         self.user = "sa"
         self.password = "123"
         self.database = "DZVS"
@@ -83,32 +83,6 @@ class ConnectJitai:
         self.conn.commit()
         self.conn.close()
 
-
-class ConnectModel:
-    def __init__(self):
-        self.server = "192.168.50.13"
-        self.user = "sa"
-        self.password = "123"
-        self.database = "MB"
-
-    def __get_connect(self):
-        if not self.database:
-            raise (NameError, "没有设置数据库信息")
-        self.conn = pymssql.connect(server=self.server, user=self.user, password=self.password, database=self.database)
-        cur = self.conn.cursor()
-        if not cur:
-            raise (NameError, "连接数据库失败")
-        else:
-            return cur
-
-    def exec_one(self, sql):
-        cur = self.__get_connect()
-        cur.execute(sql)
-        result = cur.fetchone()
-        self.conn.close()
-        return result
-
-
 def machine_id():
     this_machine_id = 'J5'
     return this_machine_id
@@ -120,7 +94,7 @@ def machine_procedure():
 
 
 def check_recent_table():
-    rex = r"T[0-9][0-9][A-Z][A-Z][0-9][0-9][0-9]"     #定义一个正则表达式，检测返回的表为车号表
+    rex = r"T[0-9][A-Z][A-Z][0-9][0-9][0-9]"     #定义一个正则表达式，检测返回的表为车号表
     table_num = 2   #该处要根据具体情况修改
     pattern = re.compile(rex)
     connect_jitai = ConnectJitai()
@@ -130,7 +104,7 @@ def check_recent_table():
     recent_table_name = connect_jitai.exec_one(sql_get_table_name)[0]
     recent_table_date = connect_jitai.exec_one(sql_get_table_name)[1]
     if pattern.fullmatch(recent_table_name) is not None:
-        sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:8] + "' and MachineId_" + machine_procedure() + " = '" + machine_id() + "'"
+        sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:8] + "'"
         if_exist_in_server = connect_server.exec_one(sql_check_if_exist)[0]
         if if_exist_in_server != 0:     #如果allindex中已存在该车号，表示已经插入过了
             connect_server.conn.close()
@@ -138,15 +112,14 @@ def check_recent_table():
             return 0
         elif if_exist_in_server == 0:   #如果allindex中不存在该车号，表示未执行插入操作，返回车号
             return [recent_table_name, recent_table_date]
-    else:
-        return 0
 
+#check_recent_table()
 
 def return_macro_name(macro_id):
     if macro_id == 0:
         return '走折废'
     else:
-        connect_jitai = ConnectModel()
+        connect_jitai = ConnectJitai()
         sql_get_table_id = "select ID from dbo.cur_model"
         table_id = connect_jitai.exec_one(sql_get_table_id)
         table_name = 'dbo.ModelMacroLog_' + str(table_id[0])
@@ -258,8 +231,8 @@ def insert_con_fail(table_name):
                 sql_get_image2 = "select ErrorImage from dbo." + table_name + " where [index]=" + str(con_fail[len(con_fail)-2][3])
                 bin_image2 = connect_jitai.exec_one(sql_get_image2)[0]
                 con_fail_images.append({})
-                con_fail_images[j]['Image1'] = ''.join(['%02x' % bytes for bytes in bin_image1])
-                con_fail_images[j]['Image2'] = ''.join(['%02x' % bytes for bytes in bin_image2])
+                con_fail_images[j]['Image1'] = ''.join(['%02x' % byte for byte in bin_image1])
+                con_fail_images[j]['Image2'] = ''.join(['%02x' % byte for byte in bin_image2])
                 j += 1
                 con_fail = []
                 i = 0
@@ -308,7 +281,7 @@ def insert_typ_fail(table_name):
                         " where FormatPos = " + str(typ_fail[1]) + " and MacroIndex = " + str(typ_fail[2]) + \
                         " order by Reserve3 DESC"
         bin_image = connect_jitai.exec_one(sql_get_image)[0]
-        typ_fail_images['Image'+str(j)] = ''.join(['%02x' % bytes for bytes in bin_image])
+        typ_fail_images['Image'+str(j)] = ''.join(['%02x' % byte for byte in bin_image])
         j += 1
     sql_insert_typ = "insert into dbo.TypicalFail_" + m_id + \
                      "([WangonName],[Max_Pos1],[Max_Area1],[Max_Num1],[Avg_Dim1],[Max_Pos2],\
@@ -330,7 +303,7 @@ def insert_typ_fail(table_name):
 
 
 s = sched.scheduler(time.time, time.sleep)
-loop_time = 10
+loop_time = 5
 
 
 def loop_check(sc):
