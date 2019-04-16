@@ -10,7 +10,7 @@ decimal.__version__
 
 class ConnectServer:
     def __init__(self):
-        self.server = "localhost"
+        self.server = "127.0.0.1"
         self.user = "sa"
         self.password = "123"
         self.database = "AnalyzedData"
@@ -48,7 +48,7 @@ class ConnectServer:
 
 class ConnectJitai:
     def __init__(self):
-        self.server = "localhost"
+        self.server = "127.0.0.1"
         self.user = "sa"
         self.password = "123"
         self.database = "DZVS"
@@ -99,21 +99,25 @@ def check_recent_table():
     pattern = re.compile(rex)
     connect_jitai = ConnectJitai()
     connect_server = ConnectServer()
-    sql_get_table_name = "SELECT name, create_date FROM (SELECT name, create_date, ROW_NUMBER() OVER (ORDER BY create_date DESC)\
-            AS num FROM sys.tables) AS B WHERE B.num = "+str(table_num)   #返回最新创建的倒数第二个表名
-    recent_table_name = connect_jitai.exec_one(sql_get_table_name)[0]
-    recent_table_date = connect_jitai.exec_one(sql_get_table_name)[1]
-    if pattern.fullmatch(recent_table_name) is not None:
-        sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:8] + "'"
-        if_exist_in_server = connect_server.exec_one(sql_check_if_exist)[0]
-        if if_exist_in_server != 0:     #如果allindex中已存在该车号，表示已经插入过了
-            connect_server.conn.close()
-            connect_jitai.conn.close()
-            return 0
-        elif if_exist_in_server == 0:   #如果allindex中不存在该车号，表示未执行插入操作，返回车号
-            return [recent_table_name, recent_table_date]
+    while 1:
+        sql_get_table_name = "SELECT name, create_date FROM (SELECT name, create_date, ROW_NUMBER() OVER (ORDER BY create_date DESC)\
+                AS num FROM sys.tables) AS B WHERE B.num = "+str(table_num)   #返回最新创建的倒数第二个表名
+        recent_table_name = connect_jitai.exec_one(sql_get_table_name)[0]
+        recent_table_date = connect_jitai.exec_one(sql_get_table_name)[1]
+        if pattern.fullmatch(recent_table_name) is not None:
+            sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:8] + "'"
+            if_exist_in_server = connect_server.exec_one(sql_check_if_exist)[0]
+            if if_exist_in_server != 0:     #如果allindex中已存在该车号，表示已经插入过了
+                connect_server.conn.close()
+                connect_jitai.conn.close()
+                return 0
+            elif if_exist_in_server == 0:   #如果allindex中不存在该车号，表示未执行插入操作，返回车号
+                return [recent_table_name, recent_table_date]
+        else:
+            table_num += 1
 
-#check_recent_table()
+#print(check_recent_table())
+
 
 def return_macro_name(macro_id):
     if macro_id == 0:
