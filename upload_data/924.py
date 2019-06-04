@@ -115,12 +115,20 @@ def machine_id():
 
 
 def machine_procedure():
-    this_machine_procedure = 'W1'
-    return this_machine_procedure
+    connect_server = ConnectServer()
+    sql = "select SideId from dbo.MachineInfo where MachineId = '"+machine_id()+"'"
+    side_id = connect_server.exec_one(sql)[0]
+    if side_id == 0:
+        machine_procedure = 'W1'
+        return machine_procedure
+    elif side_id == 1:
+        machine_procedure = 'W2'
+        return machine_procedure
+
 
 
 def check_recent_table():
-    rex = r"T[0-9][A-Z][A-Z][0-9][0-9][0-9]"     #定义一个正则表达式，检测返回的表为车号表
+    rex = r"T[0-9][0-9]{0,1}[A-Z][A-Z][0-9][0-9][0-9]"     #定义一个正则表达式，检测返回的表为车号表
     table_num = 2   #该处要根据具体情况修改
     pattern = re.compile(rex)
     connect_jitai = ConnectJitai()
@@ -131,7 +139,7 @@ def check_recent_table():
         recent_table_name = connect_jitai.exec_one(sql_get_table_name)[0]
         recent_table_date = connect_jitai.exec_one(sql_get_table_name)[1]
         if pattern.fullmatch(recent_table_name) is not None:
-            sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:8] + "' and MachineId_" + machine_procedure() + " = '" + machine_id() + "'"
+            sql_check_if_exist = "SELECT COUNT(1) from dbo.AllIndex where WangonName = '" + recent_table_name[1:] + "' and MachineId_" + machine_procedure() + " = '" + machine_id() + "'"
             if_exist_in_server = connect_server.exec_one(sql_check_if_exist)[0]
             if if_exist_in_server != 0:     #如果allindex中已存在该车号，表示已经插入过了
                 connect_server.conn.close()
@@ -167,7 +175,7 @@ def is_in_same_col(sheet1, sheet2):
 
 
 def insert_general_fail(table_name, crt_time):
-    wagon_name = table_name[1:8]
+    wagon_name = table_name[1:]
     create_time = crt_time.strftime("%Y%m%d %H:%M:%S")
     m_id = machine_id()
     m_procedure = machine_procedure()
@@ -204,16 +212,16 @@ def insert_general_fail(table_name, crt_time):
     if check_if_exist is None:
         connect_server.exec(sql_insert_all_index)
         connect_server.exec(sql_insert_general_fail)
-    elif machine_procedure() == 'W1' and check_if_exist[0] is None:
+    elif m_procedure == 'W1' and check_if_exist[0] is None:
         connect_server.exec(sql_update_all_index)
         connect_server.exec(sql_insert_general_fail)
-    elif machine_procedure() == 'W2' and check_if_exist[1] is None:
+    elif m_procedure == 'W2' and check_if_exist[1] is None:
         connect_server.exec(sql_update_all_index)
         connect_server.exec(sql_insert_general_fail)
 
 
 def insert_con_fail(table_name):
-    wagon_name = table_name[1:8]
+    wagon_name = table_name[1:]
     m_id = machine_id()
     connect_jitai = ConnectJitai()
     connect_server = ConnectServer()
@@ -288,7 +296,7 @@ def insert_con_fail(table_name):
 
 
 def insert_typ_fail(table_name):
-    wagon_name = table_name[1:8]
+    wagon_name = table_name[1:]
     m_id = machine_id()
     connect_jitai = ConnectJitai()
     connect_server = ConnectServer()
